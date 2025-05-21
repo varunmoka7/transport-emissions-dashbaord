@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transport Carbon Emissions Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .summary-card {
+            text-align: center;
+            padding: 20px;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .card-header {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+        }
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .trip-row {
+            cursor: pointer;
+        }
+        .trip-row:hover {
+            background-color: #f8f9fa;
+        }
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+        .eco-good {
+            color: #28a745;
+        }
+        .eco-average {
+            color: #ffc107;
+        }
+        .eco-poor {
+            color: #dc3545;
+        }
+        .dashboard-title {
+            background-color: #0d6efd;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            text-align: center;
+            border-radius: 0px 0px 10px 10px;
+        }
+        .dashboard-subtitle {
+            color: #f8f9fa;
+            font-style: italic;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-0">
+        <div class="dashboard-title">
+            <h1>Transport Carbon Emissions Dashboard</h1>
+            <p class="dashboard-subtitle">ESG Performance Metrics and Analysis</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- File Upload Section -->
+        <div class="card mb-4" id="upload-section">
+            <div class="card-header bg-primary text-white">
+                Upload Transport Data
+            </div>
+            <div class="card-body">
+                <form id="upload-form" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file-upload" class="form-label">Select CSV file with transport data (same format as PRL-Report)</label>
+                        <input type="file" class="form-control" id="file-upload" name="file" accept=".csv,.xlsx">
+                        <div class="form-text">Upload your transport data in CSV or Excel format to analyze carbon emissions.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload and Analyze</button>
+                </form>
+                <div class="mt-3" id="upload-status"></div>
+            </div>
+        </div>
+
+        <div id="dashboard-content" style="display: none;">
+            <!-- Summary Stats Cards -->
+            <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <h5>Total Carbon Emissions</h5>
+                    <div class="metric-value" id="totalEmissions">-</div>
+                    <div class="text-muted">kg CO₂</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <h5>Total Distance</h5>
+                    <div class="metric-value" id="totalDistance">-</div>
+                    <div class="text-muted">km</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <h5>Emission Intensity</h5>
+                    <div class="metric-value" id="emissionIntensity">-</div>
+                    <div class="text-muted">kg CO₂/km</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <h5>Potential Savings</h5>
+                    <div class="metric-value" id="potentialSavings">-</div>
+                    <div class="text-muted">kg CO₂</div>
+                </div>
+            </div>
+            
+            <!-- Additional KPIs -->
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <h5>Avg Emissions per Trip</h5>
+                    <div class="metric-value" id="emissionsPerTrip">-</div>
+                    <div class="text-muted">kg CO₂/trip</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <h5>Delayed Trips</h5>
+                    <div class="metric-value" id="delayedTrips">-</div>
+                    <div class="text-muted">% of total trips</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <h5>Total Trips</h5>
+                    <div class="metric-value" id="totalTrips">-</div>
+                    <div class="text-muted">journeys</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <h5>Delivery Efficiency</h5>
+                    <div class="metric-value" id="deliveryEfficiency">-</div>
+                    <div class="text-muted">1.0 = optimal</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Charts -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Emissions by Vehicle
+                    </div>
+                    <div class="card-body">
+                        <div id="vehicleEmissionsChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Emissions by Consignee
+                    </div>
+                    <div class="card-body">
+                        <div id="consigneeEmissionsChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        On-time vs Delayed Impact
+                    </div>
+                    <div class="card-body">
+                        <div id="deliveryStatusChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Emissions Efficiency by Vehicle
+                    </div>
+                    <div class="card-body">
+                        <div id="emissionEfficiencyChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Time Series Charts -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Emissions Over Time
+                        <div class="float-end">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary active" id="monthlyViewBtn">Monthly</button>
+                                <button type="button" class="btn btn-outline-primary" id="weeklyViewBtn">Weekly</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="timeSeriesChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Emission Intensity Analysis -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Emission Intensity Analysis (kg CO₂ per ton-km)
+                    </div>
+                    <div class="card-body">
+                        <div id="emissionIntensityChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Tools -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Export Data
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <a href="/export_data" class="btn btn-success" download>
+                                    <i class="bi bi-file-earmark-excel"></i> Export Full Dataset (CSV)
+                                </a>
+                                <a href="/export_summary" class="btn btn-primary ms-2" download>
+                                    <i class="bi bi-file-earmark-text"></i> Export Summary Report (CSV)
+                                </a>
+                            </div>
+                            <div>
+                                <button class="btn btn-outline-secondary" id="printReportBtn">
+                                    <i class="bi bi-printer"></i> Print Dashboard
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trip Details Table -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Trip Details</span>
+                <div class="input-group" style="width: 300px;">
+                    <input type="text" class="form-control" placeholder="Search trips..." id="tripSearchInput">
+                    <button class="btn btn-outline-secondary" type="button" id="searchTripsBtn">Search</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Assignment ID</th>
+                                <th>Source</th>
+                                <th>Destination</th>
+                                <th>Distance (km)</th>
+                                <th>Emissions (kg)</th>
+                                <th>Status</th>
+                                <th>Vehicle No.</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tripDetailsTable">
+                            <!-- Trip details will be inserted here -->
+                        </tbody>
+                    </table>
+                    <nav>
+                        <ul class="pagination justify-content-center" id="tripPagination">
+                            <!-- Pagination will be inserted here -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trip Detail Modal -->
+        <div class="modal fade" id="tripDetailModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="bi bi-truck"></i> Trip Details</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="nav nav-tabs" id="tripDetailTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">Overview</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="emissions-tab" data-bs-toggle="tab" data-bs-target="#emissions" type="button" role="tab">Emissions Analysis</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="consignment-tab" data-bs-toggle="tab" data-bs-target="#consignment" type="button" role="tab">Consignment</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content pt-3" id="tripDetailTabContent">
+                            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card border-0 mb-3">
+                                            <div class="card-body p-0">
+                                                <h6 class="card-title"><i class="bi bi-info-circle"></i> Basic Information</h6>
+                                                <table class="table table-sm">
+                                                    <tr><td>Assignment ID:</td><td id="modal-uid"></td></tr>
+                                                    <tr><td>LR Number:</td><td id="modal-lr"></td></tr>
+                                                    <tr><td>LR Date:</td><td id="modal-date"></td></tr>
+                                                    <tr><td>Vehicle:</td><td id="modal-vehicle"></td></tr>
+                                                    <tr><td>Source:</td><td id="modal-source"></td></tr>
+                                                    <tr><td>Destination:</td><td id="modal-destination"></td></tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card border-0 mb-3">
+                                            <div class="card-body p-0">
+                                                <h6 class="card-title"><i class="bi bi-cloud"></i> Carbon Footprint Summary</h6>
+                                                <table class="table table-sm">
+                                                    <tr><td>Total Emissions:</td><td id="modal-emissions"></td></tr>
+                                                    <tr><td>Distance Covered:</td><td id="modal-distance"></td></tr>
+                                                    <tr><td>Emission Intensity:</td><td id="modal-intensity"></td></tr>
+                                                    <tr><td>Status:</td><td id="modal-status"></td></tr>
+                                                    <tr><td>Potential Savings:</td><td id="modal-savings"></td></tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="emissions" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <h6><i class="bi bi-graph-up"></i> Emission Factors</h6>
+                                        <table class="table table-sm">
+                                            <tr><td>Base Emissions:</td><td id="modal-base-emissions"></td></tr>
+                                            <tr><td>Idling Emissions:</td><td id="modal-idling"></td></tr>
+                                            <tr><td>Weight Factor:</td><td id="modal-weight-factor"></td></tr>
+                                            <tr><td>Speed Factor:</td><td id="modal-speed-factor"></td></tr>
+                                            <tr><td>Delay Factor:</td><td id="modal-delay-factor"></td></tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <div id="emissionBreakdownChart"></div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-lightbulb"></i> <strong>Emission Reduction Tips:</strong> 
+                                            <span id="emission-tips"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="consignment" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <h6><i class="bi bi-box"></i> Consignment Details</h6>
+                                        <div class="card bg-light mb-3">
+                                            <div class="card-body">
+                                                <p id="modal-consignment"></p>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <table class="table table-sm">
+                                                    <tr><td>Estimated Weight:</td><td id="modal-weight"></td></tr>
+                                                    <tr><td>Consignor:</td><td id="modal-consignor"></td></tr>
+                                                    <tr><td>Consignee:</td><td id="modal-consignee"></td></tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div> <!-- Close dashboard-content div -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Handle file upload and dashboard initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadForm = document.getElementById('upload-form');
+            const uploadStatus = document.getElementById('upload-status');
+            const dashboardContent = document.getElementById('dashboard-content');
+            
+            // Check if default data is available
+            fetch('/check_default_data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.default_data_available) {
+                        uploadStatus.innerHTML = '<div class="alert alert-info">Default data is available. You can view it directly or upload your own data.</div>';
+                        const viewDefaultBtn = document.createElement('button');
+                        viewDefaultBtn.className = 'btn btn-outline-primary mt-2';
+                        viewDefaultBtn.textContent = 'View Default Data';
+                        viewDefaultBtn.addEventListener('click', function() {
+                            loadDashboardData();
+                        });
+                        uploadStatus.appendChild(viewDefaultBtn);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking default data:', error);
+                });
+            
+            // Handle form submission
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const fileInput = document.getElementById('file-upload');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    uploadStatus.innerHTML = '<div class="alert alert-danger">Please select a file to upload</div>';
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                uploadStatus.innerHTML = '<div class="alert alert-info">Uploading and processing data...</div>';
+                
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        uploadStatus.innerHTML = '<div class="alert alert-success">File successfully uploaded and processed!</div>';
+                        loadDashboardData();
+                    } else {
+                        uploadStatus.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error uploading file:', error);
+                    uploadStatus.innerHTML = '<div class="alert alert-danger">Error uploading file. Please try again.</div>';
+                });
+            });
+            
+            // Function to load dashboard data
+            function loadDashboardData() {
+                // Show loading indicator
+                dashboardContent.innerHTML = '<div class="text-center my-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading dashboard data...</p></div>';
+                dashboardContent.style.display = 'block';
+                
+                fetch('/emissions_data')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Reset dashboard content
+                        dashboardContent.innerHTML = `
+                        <!-- Summary Stats Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card summary-card">
+                                    <h5>Total Carbon Emissions</h5>
+                                    <div class="metric-value" id="totalEmissions">-</div>
+                                    <div class="text-muted">kg CO₂</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card summary-card">
+                                    <h5>Total Distance</h5>
+                                    <div class="metric-value" id="totalDistance">-</div>
+                                    <div class="text-muted">km</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card summary-card">
+                                    <h5>Emission Intensity</h5>
+                                    <div class="metric-value" id="emissionIntensity">-</div>
+                                    <div class="text-muted">kg CO₂/km</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card summary-card">
+                                    <h5>Potential Savings</h5>
+                                    <div class="metric-value" id="potentialSavings">-</div>
+                                    <div class="text-muted">kg CO₂</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <!-- Charts -->
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        Emissions by Vehicle
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="vehicleEmissionsChart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        Emissions by Consignee
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="consigneeEmissionsChart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        On-time vs Delayed Impact
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="deliveryStatusChart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        Emissions Efficiency by Vehicle
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="emissionEfficiencyChart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Trip Details Table -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                Trip Details
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Assignment ID</th>
+                                                <th>Source</th>
+                                                <th>Destination</th>
+                                                <th>Distance (km)</th>
+                                                <th>Emissions (kg)</th>
+                                                <th>Status</th>
+                                                <th>Vehicle No.</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tripDetailsTable">
+                                            <!-- Trip details will be inserted here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>`;
+                        
+                        populateSummaryStats(data);
+                        createVehicleEmissionsChart(data.vehicle_summary);
+                        createConsigneeEmissionsChart(data.consignee_summary);
+                        createDeliveryStatusChart(data.delivery_status);
+                        createEmissionEfficiencyChart(data.vehicle_summary);
+                        createTimeSeriesChart(data.time_series_monthly, 'monthly');
+                        createEmissionIntensityChart(data.vehicle_summary);
+                        populateTripTable(data.trip_details);
+                        
+                        // Setup time series view toggle
+                        const monthlyViewBtn = document.getElementById('monthlyViewBtn');
+                        const weeklyViewBtn = document.getElementById('weeklyViewBtn');
+                        
+                        monthlyViewBtn.addEventListener('click', function() {
+                            monthlyViewBtn.classList.add('active');
+                            weeklyViewBtn.classList.remove('active');
+                            createTimeSeriesChart(data.time_series_monthly, 'monthly');
+                        });
+                        
+                        weeklyViewBtn.addEventListener('click', function() {
+                            weeklyViewBtn.classList.add('active'); 
+                            monthlyViewBtn.classList.remove('active');
+                            createTimeSeriesChart(data.time_series_weekly, 'weekly');
+                        });
+                        
+                        // Setup print functionality
+                        document.getElementById('printReportBtn').addEventListener('click', function() {
+                            window.print();
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                        dashboardContent.innerHTML = '<div class="alert alert-danger">Error loading dashboard data. Please try again.</div>';
+                    });
+            }
+        });
+
+        function populateSummaryStats(data) {
+            document.getElementById('totalEmissions').textContent = Math.round(data.total_emissions).toLocaleString();
+            document.getElementById('totalDistance').textContent = Math.round(data.total_distance).toLocaleString();
+            
+            document.getElementById('emissionIntensity').textContent = data.emission_intensity.toFixed(2);
+            document.getElementById('potentialSavings').textContent = Math.round(data.total_potential_savings).toLocaleString();
+            
+            // Additional KPIs
+            document.getElementById('emissionsPerTrip').textContent = Math.round(data.emission_per_trip).toLocaleString();
+            
+            const delayedPercentage = (data.delayed_trips_count / data.total_trips_count) * 100;
+            document.getElementById('delayedTrips').textContent = `${Math.round(delayedPercentage)}%`;
+            
+            document.getElementById('totalTrips').textContent = data.total_trips_count.toLocaleString();
+            document.getElementById('deliveryEfficiency').textContent = data.delivery_efficiency.toFixed(2);
+        }
+
+        function createVehicleEmissionsChart(vehicleData) {
+            // Sort by emissions, take top 10
+            vehicleData.sort((a, b) => b.Total_Emissions_kg - a.Total_Emissions_kg);
+            const topVehicles = vehicleData.slice(0, 10);
+            
+            const trace = {
+                x: topVehicles.map(v => v.Vehicle),
+                y: topVehicles.map(v => v.Total_Emissions_kg),
+                type: 'bar',
+                marker: {
+                    color: 'rgba(13, 110, 253, 0.7)'
+                },
+                hovertemplate: '<b>%{x}</b><br>Emissions: %{y:.2f} kg CO₂<br>Distance: %{customdata} km<extra></extra>',
+                customdata: topVehicles.map(v => v.Total_Distance_km.toFixed(0))
+            };
+
+            const layout = {
+                margin: {t: 10, b: 80},
+                yaxis: {
+                    title: 'Total Emissions (kg CO₂)'
+                },
+                xaxis: {
+                    tickangle: -45
+                }
+            };
+
+            Plotly.newPlot('vehicleEmissionsChart', [trace], layout);
+        }
+
+        function createConsigneeEmissionsChart(consigneeData) {
+            // Sort by emissions, take top 5
+            consigneeData.sort((a, b) => b.Total_Emissions_kg - a.Total_Emissions_kg);
+            const topConsignees = consigneeData.slice(0, 5);
+            
+            const trace = {
+                labels: topConsignees.map(c => c.Consignee),
+                values: topConsignees.map(c => c.Total_Emissions_kg),
+                type: 'pie',
+                hovertemplate: '<b>%{label}</b><br>Emissions: %{value:.2f} kg CO₂<br>Trips: %{customdata}<extra></extra>',
+                customdata: topConsignees.map(c => c.Trip_Count),
+                textinfo: 'percent',
+                marker: {
+                    colors: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545']
+                }
+            };
+
+            const layout = {
+                margin: {t: 10, b: 10, l: 10, r: 10},
+                showlegend: true
+            };
+
+            Plotly.newPlot('consigneeEmissionsChart', [trace], layout);
+        }
+
+        function createDeliveryStatusChart(statusData) {
+            const delayed = statusData.find(s => s['Transit Status'] === 'Delayed') || 
+                          {Total_Emissions_kg: 0, Total_Distance_km: 0, Trip_Count: 0, Potential_Savings_kg: 0};
+            const onTime = statusData.find(s => s['Transit Status'] === 'On Time') || 
+                        {Total_Emissions_kg: 0, Total_Distance_km: 0, Trip_Count: 0, Potential_Savings_kg: 0};
+
+            const emissionsData = [
+                {category: 'On Time', value: onTime.Total_Emissions_kg, type: 'Actual Emissions'},
+                {category: 'Delayed', value: delayed.Total_Emissions_kg - delayed.Potential_Savings_kg, type: 'Necessary Emissions'},
+                {category: 'Delayed', value: delayed.Potential_Savings_kg, type: 'Excess Emissions'}
+            ];
+
+            const trace1 = {
+                x: ['On Time', 'Delayed'],
+                y: [onTime.Total_Emissions_kg, delayed.Total_Emissions_kg - delayed.Potential_Savings_kg],
+                name: 'Necessary Emissions',
+                type: 'bar',
+                marker: { color: '#28a745' },
+                hovertemplate: '<b>%{x}</b><br>Emissions: %{y:.2f} kg CO₂<extra></extra>',
+            };
+
+            const trace2 = {
+                x: ['On Time', 'Delayed'],
+                y: [0, delayed.Potential_Savings_kg],
+                name: 'Excess Emissions',
+                type: 'bar',
+                marker: { color: '#dc3545' },
+                hovertemplate: '<b>%{x}</b><br>Excess Emissions: %{y:.2f} kg CO₂<extra></extra>',
+            };
+
+            const trace3 = {
+                x: ['On Time', 'Delayed'],
+                y: [onTime.Trip_Count, delayed.Trip_Count],
+                name: 'Trip Count',
+                yaxis: 'y2',
+                type: 'scatter',
+                mode: 'markers',
+                marker: { 
+                    size: 12,
+                    color: 'rgba(0, 0, 0, 0.7)'
+                },
+                hovertemplate: '<b>%{x}</b><br>Trips: %{y}<extra></extra>',
+            };
+
+            const layout = {
+                barmode: 'stack',
+                margin: {t: 10},
+                yaxis: {
+                    title: 'Emissions (kg CO₂)'
+                },
+                yaxis2: {
+                    title: 'Trip Count',
+                    overlaying: 'y',
+                    side: 'right'
+                },
+                legend: {
+                    orientation: 'h',
+                    y: -0.2
+                }
+            };
+
+            Plotly.newPlot('deliveryStatusChart', [trace1, trace2, trace3], layout);
+        }
+
+        function createEmissionEfficiencyChart(vehicleData) {
+            // Add emission efficiency score
+            vehicleData.forEach(v => {
+                v.Efficiency = v.Total_Emissions_kg / (v.Total_Distance_km * v.Avg_Load_Tons);
+            });
+            
+            // Sort by efficiency (lower is better) and take top 10
+            vehicleData.sort((a, b) => a.Efficiency - b.Efficiency);
+            const topVehicles = vehicleData.slice(0, 10);
+            
+            const colorScale = topVehicles.map(v => {
+                if (v.Efficiency < 0.1) return '#28a745'; // Good
+                if (v.Efficiency < 0.2) return '#ffc107'; // Average
+                return '#dc3545'; // Poor
+            });
+            
+            const trace = {
+                x: topVehicles.map(v => v.Vehicle),
+                y: topVehicles.map(v => v.Emissions_per_km),
+                type: 'bar',
+                marker: {
+                    color: colorScale
+                },
+                hovertemplate: '<b>%{x}</b><br>Emissions per km: %{y:.2f} kg CO₂/km<br>Avg Load: %{customdata} tons<extra></extra>',
+                customdata: topVehicles.map(v => v.Avg_Load_Tons.toFixed(1))
+            };
+
+            const layout = {
+                margin: {t: 10, b: 80},
+                yaxis: {
+                    title: 'Emissions per km (kg CO₂/km)'
+                },
+                xaxis: {
+                    tickangle: -45
+                }
+            };
+
+            Plotly.newPlot('emissionEfficiencyChart', [trace], layout);
+        }
+
+        function populateTripTable(trips) {
+            const tbody = document.getElementById('tripDetailsTable');
+            tbody.innerHTML = '';
+            
+            // Setup pagination
+            const itemsPerPage = 10;
+            const pageCount = Math.ceil(trips.length / itemsPerPage);
+            let currentPage = 1;
+            
+            function showPage(page) {
+                const startIndex = (page - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                const pageItems = trips.slice(startIndex, endIndex);
+                
+                tbody.innerHTML = '';
+                
+                pageItems.forEach(trip => {
+                    const row = document.createElement('tr');
+                    row.className = 'trip-row';
+                    row.setAttribute('data-trip-id', trip['Assignment UID']);
+                    
+                    // Format the date if available
+                    const tripDate = trip['Trip_Date'] ? new Date(trip['Trip_Date']).toLocaleDateString() : 'N/A';
+                    
+                    row.innerHTML = `
+                        <td>${trip['Assignment UID']}</td>
+                        <td>${trip['Source'] || 'N/A'}</td>
+                        <td>${trip['Destination'] || 'N/A'}</td>
+                        <td>${Math.round(trip['Distance Covered'] || 0)}</td>
+                        <td>${Math.round(trip['Total_Emissions_kg'] || 0)}</td>
+                        <td>${getStatusBadge(trip['Transit Status'])}</td>
+                        <td>${trip['Current Vehicle No.'] || 'N/A'}</td>
+                        <td>${tripDate}</td>
+                    `;
+                    tbody.appendChild(row);
+                    
+                    // Add click event to show modal
+                    row.addEventListener('click', function() {
+                        const tripId = this.getAttribute('data-trip-id');
+                        showTripDetails(tripId);
+                    });
+                });
+                
+                updatePagination(page, pageCount);
+            }
+            
+            function updatePagination(currentPage, pageCount) {
+                const pagination = document.getElementById('tripPagination');
+                pagination.innerHTML = '';
+                
+                // Previous button
+                const prevLi = document.createElement('li');
+                prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+                const prevLink = document.createElement('a');
+                prevLink.className = 'page-link';
+                prevLink.href = '#';
+                prevLink.textContent = 'Previous';
+                prevLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (currentPage > 1) {
+                        showPage(currentPage - 1);
+                    }
+                });
+                prevLi.appendChild(prevLink);
+                pagination.appendChild(prevLi);
+                
+                // Page numbers
+                const maxPages = 5;
+                let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+                let endPage = startPage + maxPages - 1;
+                
+                if (endPage > pageCount) {
+                    endPage = pageCount;
+                    startPage = Math.max(1, endPage - maxPages + 1);
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageLi = document.createElement('li');
+                    pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                    const pageLink = document.createElement('a');
+                    pageLink.className = 'page-link';
+                    pageLink.href = '#';
+                    pageLink.textContent = i;
+                    pageLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        showPage(i);
+                    });
+                    pageLi.appendChild(pageLink);
+                    pagination.appendChild(pageLi);
+                }
+                
+                // Next button
+                const nextLi = document.createElement('li');
+                nextLi.className = `page-item ${currentPage === pageCount ? 'disabled' : ''}`;
+                const nextLink = document.createElement('a');
+                nextLink.className = 'page-link';
+                nextLink.href = '#';
+                nextLink.textContent = 'Next';
+                nextLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (currentPage < pageCount) {
+                        showPage(currentPage + 1);
+                    }
+                });
+                nextLi.appendChild(nextLink);
+                pagination.appendChild(nextLi);
+            }
+            
+            // Initialize search functionality
+            const searchInput = document.getElementById('tripSearchInput');
+            const searchBtn = document.getElementById('searchTripsBtn');
+            
+            function searchTrips() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filteredTrips = trips.filter(trip => 
+                    (trip['Source'] && trip['Source'].toLowerCase().includes(searchTerm)) ||
+                    (trip['Destination'] && trip['Destination'].toLowerCase().includes(searchTerm)) ||
+                    (trip['Assignment UID'] && trip['Assignment UID'].toString().includes(searchTerm)) ||
+                    (trip['Current Vehicle No.'] && trip['Current Vehicle No.'].toString().toLowerCase().includes(searchTerm))
+                );
+                
+                populateTripTable(filteredTrips);
+            }
+            
+            searchBtn.addEventListener('click', searchTrips);
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchTrips();
+                }
+            });
+            
+            // Show first page
+            if (trips.length > 0) {
+                showPage(1);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center">No trips found</td></tr>';
+            }
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'Delayed') {
+                return '<span class="badge bg-danger">Delayed</span>';
+            } else if (status === 'On Time') {
+                return '<span class="badge bg-success">On Time</span>';
+            } else {
+                return '<span class="badge bg-secondary">Unknown</span>';
+            }
+        }
+
+        function showTripDetails(tripId) {
+            fetch(`/trip_details/${tripId}`)
+                .then(response => response.json())
+                .then(tripData => {
+                    // Basic information
+                    document.getElementById('modal-uid').textContent = tripData.assignment_uid;
+                    document.getElementById('modal-lr').textContent = tripData.lr_number;
+                    document.getElementById('modal-date').textContent = tripData.lr_date;
+                    document.getElementById('modal-vehicle').textContent = tripData.vehicle;
+                    document.getElementById('modal-source').textContent = tripData.source;
+                    document.getElementById('modal-destination').textContent = tripData.destination;
+                    
+                    // Carbon footprint data
+                    document.getElementById('modal-emissions').textContent = `${Math.round(tripData.total_emissions)} kg CO₂`;
+                    document.getElementById('modal-distance').textContent = `${Math.round(tripData.distance_covered)} km`;
+                    
+                    // Calculate emission intensity
+                    const intensity = tripData.total_emissions / (tripData.distance_covered * tripData.estimated_weight);
+                    document.getElementById('modal-intensity').textContent = `${intensity.toFixed(3)} kg CO₂/ton-km`;
+                    
+                    // Status with color coding
+                    const statusElement = document.getElementById('modal-status');
+                    statusElement.textContent = tripData.transit_status;
+                    if (tripData.transit_status === 'Delayed') {
+                        statusElement.className = 'text-danger fw-bold';
+                    } else if (tripData.transit_status === 'On Time') {
+                        statusElement.className = 'text-success fw-bold';
+                    }
+                    
+                    document.getElementById('modal-savings').textContent = `${Math.round(tripData.potential_savings)} kg CO₂`;
+                    
+                    // Emission factors
+                    document.getElementById('modal-base-emissions').textContent = `${Math.round(tripData.base_emissions)} kg CO₂`;
+                    document.getElementById('modal-idling').textContent = `${Math.round(tripData.idling_emissions)} kg CO₂`;
+                    
+                    // Additional emission factors - use default values if not available
+                    document.getElementById('modal-weight-factor').textContent = tripData.weight_factor ? tripData.weight_factor.toFixed(2) : '1.00';
+                    document.getElementById('modal-speed-factor').textContent = tripData.speed_factor ? tripData.speed_factor.toFixed(2) : '1.00';
+                    document.getElementById('modal-delay-factor').textContent = tripData.transit_status === 'Delayed' ? '1.20' : '1.00';
+                    
+                    // Consignment info
+                    document.getElementById('modal-consignment').textContent = tripData.consignment;
+                    document.getElementById('modal-weight').textContent = `${tripData.estimated_weight} tons`;
+                    document.getElementById('modal-consignor').textContent = tripData.consignor;
+                    document.getElementById('modal-consignee').textContent = tripData.consignee;
+                    
+                    // Emission reduction tips based on trip data
+                    let tips = '';
+                    if (tripData.idling_emissions > tripData.base_emissions * 0.2) {
+                        tips += 'Reduce idling time to save significant emissions. ';
+                    }
+                    if (tripData.transit_status === 'Delayed') {
+                        tips += 'Better route planning could reduce delay-related emissions. ';
+                    }
+                    if (tripData.distance_covered > 500) {
+                        tips += 'Consider rail transport for long distances where possible. ';
+                    }
+                    if (!tips) {
+                        tips = 'This trip has relatively optimal carbon efficiency. Continue with current practices.';
+                    }
+                    document.getElementById('emission-tips').textContent = tips;
+                    
+                    // Create emission breakdown chart
+                    createEmissionBreakdownChart(tripData);
+                    
+                    // Reset to overview tab
+                    document.getElementById('overview-tab').click();
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('tripDetailModal'));
+                    modal.show();
+                })
+                .catch(error => console.error('Error fetching trip details:', error));
+        }
+
+        function createEmissionBreakdownChart(tripData) {
+            const base = tripData.base_emissions;
+            const idling = tripData.idling_emissions;
+            const excess = tripData.potential_savings;
+            const other = tripData.total_emissions - base - idling - excess;
+            
+            const data = [{
+                values: [base, idling, excess, other],
+                labels: ['Base Emissions', 'Idling Emissions', 'Delay-Related', 'Other Factors'],
+                type: 'pie',
+                textinfo: 'percent',
+                hoverinfo: 'label+value',
+                marker: {
+                    colors: ['#0d6efd', '#fd7e14', '#dc3545', '#6f42c1']
+                }
+            }];
+            
+            const layout = {
+                title: 'Emissions Breakdown',
+                height: 300,
+                margin: {l: 0, r: 0, b: 0, t: 30}
+            };
+            
+            Plotly.newPlot('emissionBreakdownChart', data, layout);
+        }
+
+        function createTimeSeriesChart(timeData, periodType) {
+            // Prepare data
+            const period = periodType === 'monthly' ? 'Month' : 'Week';
+            const periodLabel = periodType === 'monthly' ? 'Month' : 'Week';
+            
+            const trace1 = {
+                x: timeData.map(d => d[period]),
+                y: timeData.map(d => d.Total_Emissions_kg),
+                name: 'Total Emissions',
+                type: 'bar',
+                marker: {
+                    color: '#0d6efd'
+                },
+                hovertemplate: '<b>%{x}</b><br>Emissions: %{y:.2f} kg CO₂<extra></extra>'
+            };
+            
+            const trace2 = {
+                x: timeData.map(d => d[period]),
+                y: timeData.map(d => d.Emissions_per_km),
+                name: 'Emissions per km',
+                type: 'scatter',
+                mode: 'lines+markers',
+                yaxis: 'y2',
+                line: {
+                    color: '#dc3545',
+                    width: 3
+                },
+                marker: {
+                    size: 8
+                },
+                hovertemplate: '<b>%{x}</b><br>Emissions/km: %{y:.2f} kg CO₂/km<extra></extra>'
+            };
+            
+            const trace3 = {
+                x: timeData.map(d => d[period]),
+                y: timeData.map(d => d.Trip_Count),
+                name: 'Trip Count',
+                type: 'scatter',
+                mode: 'lines+markers',
+                yaxis: 'y3',
+                line: {
+                    color: '#198754',
+                    width: 2,
+                    dash: 'dot'
+                },
+                marker: {
+                    size: 6
+                },
+                hovertemplate: '<b>%{x}</b><br>Trips: %{y}<extra></extra>'
+            };
+            
+            const layout = {
+                title: `Emissions Trend by ${periodLabel}`,
+                xaxis: {
+                    title: periodLabel
+                },
+                yaxis: {
+                    title: 'Total Emissions (kg CO₂)',
+                    titlefont: {color: '#0d6efd'},
+                    tickfont: {color: '#0d6efd'}
+                },
+                yaxis2: {
+                    title: 'Emissions per km',
+                    titlefont: {color: '#dc3545'},
+                    tickfont: {color: '#dc3545'},
+                    overlaying: 'y',
+                    side: 'right',
+                    showgrid: false
+                },
+                yaxis3: {
+                    title: 'Trip Count',
+                    titlefont: {color: '#198754'},
+                    tickfont: {color: '#198754'},
+                    overlaying: 'y',
+                    side: 'right',
+                    position: 0.95,
+                    showgrid: false
+                },
+                legend: {
+                    orientation: 'h',
+                    y: -0.2
+                },
+                hovermode: 'closest',
+                height: 500,
+                annotations: [{
+                    text: 'Lower is better for emissions efficiency',
+                    x: 0.5,
+                    y: 1.05,
+                    xref: 'paper',
+                    yref: 'paper',
+                    showarrow: false,
+                    font: {
+                        size: 12,
+                        color: '#6c757d'
+                    }
+                }]
+            };
+            
+            Plotly.newPlot('timeSeriesChart', [trace1, trace2, trace3], layout);
+        }
+    </script>
+</body>
+</html>

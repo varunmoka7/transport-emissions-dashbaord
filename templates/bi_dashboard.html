@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Emissions BI Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.40.0/dist/apexcharts.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --primary-color: #0466c8;
+            --secondary-color: #023e8a;
+            --success-color: #38b000;
+            --warning-color: #ffb703;
+            --danger-color: #d90429;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fb;
+        }
+        
+        /* Dashboard Layout */
+        .dashboard-container {
+            padding: 20px;
+        }
+        
+        .dashboard-header {
+            margin-bottom: 30px;
+        }
+        
+        /* Card Styling */
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        
+        .card-header {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-weight: bold;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 15px 20px;
+            border: none;
+        }
+        
+        /* KPI Cards */
+        .kpi-card {
+            text-align: center;
+            padding: 20px;
+            height: 100%;
+        }
+        
+        .kpi-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+        
+        .kpi-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .kpi-trend {
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .trend-up {
+            color: var(--success-color);
+        }
+        
+        .trend-down {
+            color: var(--danger-color);
+        }
+        
+        /* Charts */
+        .chart-container {
+            height: 400px;
+            width: 100%;
+            position: relative;
+        }
+        
+        /* DataTables */
+        .datatable-container {
+            overflow-x: auto;
+        }
+        
+        table.dataTable thead th {
+            background-color: #e9ecef;
+            font-weight: 600;
+        }
+        
+        /* Filters Section */
+        .filters-section {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        /* Navigation Tabs */
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--dark-color);
+            font-weight: 500;
+            padding: 10px 20px;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            background-color: transparent;
+        }
+        
+        /* Map */
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+        }
+        
+        /* Date Range Picker */
+        .daterangepicker {
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .kpi-value {
+                font-size: 1.8rem;
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+        }
+        
+        /* Custom Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+        
+        input:focus + .toggle-slider {
+            box-shadow: 0 0 1px var(--primary-color);
+        }
+        
+        input:checked + .toggle-slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        /* Dashboard segments */
+        .segment-selector .nav-link {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-right: 10px;
+            font-weight: 500;
+        }
+        
+        .segment-selector .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        /* Loading spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255,255,255,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading spinner -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="mb-0">Transport Emissions BI Dashboard</h1>
+                    <p class="text-muted">Advanced analytics for emissions and logistics performance</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" id="exportDataBtn">
+                            <i class="bi bi-download me-2"></i>Export Data
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="exportReportBtn">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>Export Report
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                            <i class="bi bi-gear me-2"></i>Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="dateRange" class="form-label">Date Range</label>
+                        <input type="text" class="form-control" id="dateRange" placeholder="Select date range">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="consigneeFilter" class="form-label">Consignee</label>
+                        <select class="form-select" id="consigneeFilter">
+                            <option value="">All Consignees</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="vehicleFilter" class="form-label">Vehicle</label>
+                        <select class="form-select" id="vehicleFilter">
+                            <option value="">All Vehicles</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="statusFilter" class="form-label">Status</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="DELIVERED">Delivered</option>
+                            <option value="On Time">On Time</option>
+                            <option value="Delayed">Delayed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-12 text-end">
+                    <button type="button" class="btn btn-primary" id="applyFilters">
+                        <i class="bi bi-funnel me-2"></i>Apply Filters
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="resetFilters">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Segment Selection -->
+        <div class="segment-selector mb-4">
+            <ul class="nav nav-pills">
+                <li class="nav-item">
+                    <a class="nav-link active" id="overview-tab" data-bs-toggle="pill" href="#overview" role="tab">Executive Overview</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="emissions-tab" data-bs-toggle="pill" href="#emissions" role="tab">Emissions Analysis</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="logistics-tab" data-bs-toggle="pill" href="#logistics" role="tab">Logistics Performance</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="trends-tab" data-bs-toggle="pill" href="#trends" role="tab">Trends & Forecasting</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="suppliers-tab" data-bs-toggle="pill" href="#suppliers" role="tab">Supplier Analysis</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="tab-content">
+            <!-- Executive Overview Tab -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                <!-- KPI Summary Row -->
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card h-100">
+                            <div class="kpi-card">
+                                <div class="kpi-icon">
+                                    <i class="bi bi-cloud"></i>
+                                </div>
+                                <div class="kpi-value" id="totalEmissions">0</div>
+                                <div class="kpi-label">Total CO₂ Emissions (kg)</div>
+                                <div class="kpi-trend">
+                                    <i class="bi bi-arrow-down-right trend-down" id="emissionTrend"></i>
+                                    <span id="emissionTrendValue">0% vs previous period</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card h-100">
+                            <div class="kpi-card">
+                                <div class="kpi-icon">
+                                    <i class="bi bi-speedometer2"></i>
+                                </div>
+                                <div class="kpi-value" id="emissionIntensity">0</div>
+                                <div class="kpi-label">Emission Intensity (kg/ton-km)</div>
+                                <div class="kpi-trend">
+                                    <i class="bi bi-arrow-down-right trend-down" id="intensityTrend"></i>
+                                    <span id="intensityTrendValue">0% vs previous period</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card h-100">
+                            <div class="kpi-card">
+                                <div class="kpi-icon">
+                                    <i class="bi bi-truck"></i>
+                                </div>
+                                <div class="kpi-value" id="totalTrips">0</div>
+                                <div class="kpi-label">Total Trips</div>
+                                <div class="kpi-trend">
+                                    <i class="bi bi-arrow-up-right trend-up" id="tripsTrend"></i>
+                                    <span id="tripsTrendValue">0% vs previous period</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card h-100">
+                            <div class="kpi-card">
+                                <div class="kpi-icon">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
+                                <div class="kpi-value" id="onTimeDelivery">0%</div>
+                                <div class="kpi-label">On-Time Delivery Rate</div>
+                                <div class="kpi-trend">
+                                    <i class="bi bi-arrow-up-right trend-up" id="otdTrend"></i>
+                                    <span id="otdTrendValue">0% vs previous period</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary KPIs Row -->
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card h-100">
+                            <div class="kpi-card">
+                                <div class="kpi-value" id="emissionsPerTrip">0</div>
+                                <div class="kpi-label">Emissions per Trip (kg)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card h-100">
+                            <div class="kpi-card">
+                                <div class="kpi-value" id="potentialSavings">0</div>
+                                <div class="kpi-label">Potential CO₂ Savings (kg)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card h-100">
+                            <div class="kpi-card">
+                                <div class="kpi-value" id="avgDistance">0</div>
+                                <div class="kpi-label">Avg Distance per Trip (km)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card h-100">
+                            <div class="kpi-card">
+                                <div class="kpi-value" id="deliveryEfficiency">1.0</div>
+                                <div class="kpi-label">Delivery Efficiency Score</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Emissions & Trips Over Time</span>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-light active timeScaleBtn" data-scale="monthly">Monthly</button>
+                                    <button type="button" class="btn btn-sm btn-outline-light timeScaleBtn" data-scale="weekly">Weekly</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="emissionsTimeChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Delivery Status Breakdown</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="deliveryStatusChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- More Charts Row -->
+                <div class="row mb-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Top 10 Vehicles by Emissions</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="topVehiclesChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Top 10 Routes by Distance</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="topRoutesChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Trip Locations & Routes</span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="showHeatmapToggle">
+                                    <label class="form-check-label" for="showHeatmapToggle">Show Emissions Heatmap</label>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="map"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emissions Analysis Tab -->
+            <div class="tab-pane fade" id="emissions" role="tabpanel" aria-labelledby="emissions-tab">
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Emissions Breakdown by Factor</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="emissionsBreakdownChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Emissions by Vehicle Type</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="vehicleTypeEmissionsChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Emissions Intensity vs Distance</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="emissionsVsDistanceChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Emissions Intensity vs Load Weight</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="emissionsVsLoadChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Idling Emissions by Time of Day</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="idlingByTimeChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Speed Efficiency Distribution</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="speedEfficiencyChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Emissions Correlation Matrix</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="correlationMatrixChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logistics Performance Tab -->
+            <div class="tab-pane fade" id="logistics" role="tabpanel" aria-labelledby="logistics-tab">
+                <div class="row mb-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Delivery Performance Timeline</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="deliveryTimelineChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Average Speed vs Emissions</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="speedVsEmissionsChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Halt Time Distribution</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="haltTimeDistChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Vehicle Utilization Rate</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="vehicleUtilizationChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Delay Causes</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="delayCausesChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Vehicle Performance Comparison</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="vehiclePerformanceChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trends & Forecasting Tab -->
+            <div class="tab-pane fade" id="trends" role="tabpanel" aria-labelledby="trends-tab">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Emissions Forecast (Next 6 Months)</span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="optimizedForecastToggle" checked>
+                                    <label class="form-check-label" for="optimizedForecastToggle">Show Optimized Scenario</label>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="emissionsForecastChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Seasonal Patterns in Deliveries</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="seasonalPatternsChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Anomaly Detection</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="anomalyDetectionChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Year-over-Year Comparison</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="yearComparisonChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Emissions Reduction Targets</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="reductionTargetsChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supplier Analysis Tab -->
+            <div class="tab-pane fade" id="suppliers" role="tabpanel" aria-labelledby="suppliers-tab">
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Consignee Emissions Comparison</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="consigneeComparisonChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Consignee Distribution</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="consigneeDistributionChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Consignee Performance Scorecard</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped" id="consigneeTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Consignee</th>
+                                                <th>Total Trips</th>
+                                                <th>Total Emissions (kg)</th>
+                                                <th>Avg Distance (km)</th>
+                                                <th>Emission Intensity</th>
+                                                <th>On-Time Rate</th>
+                                                <th>Performance Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Data will be populated dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Consignment Type Analysis</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="consignmentTypeChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Regional Performance</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="regionalPerformanceChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Trip Data -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Detailed Trip Data</span>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="expandTableBtn">
+                            <i class="bi bi-arrows-angle-expand"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped" id="tripDataTable">
+                                <thead>
+                                    <tr>
+                                        <th>Assignment UID</th>
+                                        <th>Vehicle</th>
+                                        <th>Source</th>
+                                        <th>Destination</th>
+                                        <th>Date</th>
+                                        <th>Distance (km)</th>
+                                        <th>Weight (tons)</th>
+                                        <th>Status</th>
+                                        <th>Emissions (kg)</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Data will be populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trip Detail Modal -->
+    <div class="modal fade" id="tripDetailModal" tabindex="-1" aria-labelledby="tripDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tripDetailModalLabel">Trip Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Basic Information</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Assignment UID:</th>
+                                    <td id="modalAssignmentUid"></td>
+                                </tr>
+                                <tr>
+                                    <th>Vehicle:</th>
+                                    <td id="modalVehicle"></td>
+                                </tr>
+                                <tr>
+                                    <th>LR Number:</th>
+                                    <td id="modalLrNumber"></td>
+                                </tr>
+                                <tr>
+                                    <th>LR Date:</th>
+                                    <td id="modalLrDate"></td>
+                                </tr>
+                                <tr>
+                                    <th>Source:</th>
+                                    <td id="modalSource"></td>
+                                </tr>
+                                <tr>
+                                    <th>Destination:</th>
+                                    <td id="modalDestination"></td>
+                                </tr>
+                                <tr>
+                                    <th>Consignor:</th>
+                                    <td id="modalConsignor"></td>
+                                </tr>
+                                <tr>
+                                    <th>Consignee:</th>
+                                    <td id="modalConsignee"></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Trip Performance</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Distance:</th>
+                                    <td id="modalDistance"></td>
+                                </tr>
+                                <tr>
+                                    <th>Consignment:</th>
+                                    <td id="modalConsignment"></td>
+                                </tr>
+                                <tr>
+                                    <th>Estimated Weight:</th>
+                                    <td id="modalWeight"></td>
+                                </tr>
+                                <tr>
+                                    <th>Transit Status:</th>
+                                    <td id="modalStatus"></td>
+                                </tr>
+                                <tr>
+                                    <th>Total Emissions:</th>
+                                    <td id="modalEmissions"></td>
+                                </tr>
+                                <tr>
+                                    <th>Base Emissions:</th>
+                                    <td id="modalBaseEmissions"></td>
+                                </tr>
+                                <tr>
+                                    <th>Idling Emissions:</th>
+                                    <td id="modalIdlingEmissions"></td>
+                                </tr>
+                                <tr>
+                                    <th>Potential Savings:</th>
+                                    <td id="modalPotentialSavings"></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Emissions Breakdown</h6>
+                            <div id="modalEmissionsBreakdown" style="height: 250px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="exportTripBtn">Export Trip Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">Dashboard Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Display Options</h6>
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="darkModeToggle">
+                        <label class="form-check-label" for="darkModeToggle">Dark Mode</label>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="animationsToggle" checked>
+                        <label class="form-check-label" for="animationsToggle">Enable Animations</label>
+                    </div>
+                    
+                    <h6 class="mt-4">Data Refresh Rate</h6>
+                    <div class="mb-3">
+                        <select class="form-select" id="refreshRateSelect">
+                            <option value="0">Manual Refresh Only</option>
+                            <option value="60000">Every Minute</option>
+                            <option value="300000" selected>Every 5 Minutes</option>
+                            <option value="900000">Every 15 Minutes</option>
+                            <option value="1800000">Every 30 Minutes</option>
+                        </select>
+                    </div>
+                    
+                    <h6 class="mt-4">Default Date Range</h6>
+                    <div class="mb-3">
+                        <select class="form-select" id="defaultDateRange">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="90">Last Quarter</option>
+                            <option value="365">Last Year</option>
+                            <option value="0">All Time</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker@3.1.0/daterangepicker.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker@3.1.0/daterangepicker.css">
+    
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    
+    <!-- Include jQuery for DataTables -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    
+    <!-- Leaflet Plugins -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
