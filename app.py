@@ -169,9 +169,9 @@ def calculate_emissions(df):
             BASE_EMISSION_FACTOR = hdv_row.iloc[0]['Emission_Factor_Value']
         else:
             BASE_EMISSION_FACTOR = 0.7375  # Default HDV emission factor if not found
-        print(f"Using base emission factor: {BASE_EMISSION_FACTOR} kg CO2/km")
+        print("Using base emission factor: {} kg CO2/km".format(BASE_EMISSION_FACTOR))
     except Exception as e:
-        print(f"Error loading emission factors: {e}")
+        print("Error loading emission factors: {}".format(e))
         BASE_EMISSION_FACTOR = 0.7375  # Default if CSV not found
         
     # Calculate idling emission factor based on HDV standards
@@ -248,7 +248,7 @@ def calculate_emissions(df):
             return base_factor
             
         except Exception as e:
-            print(f"Error in vehicle factor calculation: {e}")
+            print("Error in vehicle factor calculation: {}".format(e))
             return BASE_EMISSION_FACTOR
     
     # Apply vehicle-specific emission factors
@@ -307,7 +307,7 @@ def calculate_emissions(df):
                 except:
                     pass  # Keep default if calculation fails
     except Exception as e:
-        print(f"Error processing average speed: {e}")
+        print("Error processing average speed: {}".format(e))
         df['Avg_Speed_kmh'] = 50  # Default if all else fails
     
     # Define speed efficiency function based on Indian driving conditions
